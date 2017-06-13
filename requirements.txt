@@ -1,0 +1,16 @@
+# xml/html
+lxml==3.8
+# http
+Requests==2.17.3
+# db orm
+peewee==2.10.1
+# web framework
+Sanic==0.5.4
+# task queue
+Celery==4.0.2
+# runter
+flower==0.9.1
+# view
+Jinja2==2.9.6
+# utils
+progress==1.3

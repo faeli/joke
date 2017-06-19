@@ -33,6 +33,10 @@ class Database(object):
     def init(self, database, **connect_kwargs):
         self.deferred = database is None
         self.database = database
+        if 'init_file' in connect_kwargs:
+            self.init_file = connect_kwargs.pop('init_file')
+        if 'upgrade_file' in connect_kwargs:
+            self.upgrade_file = connect_kwargs.pop('upgrade_file')
         self.connect_kwargs.update(connect_kwargs)
     
     def connect(self):
@@ -114,6 +118,8 @@ else:
 
 class SQLiteDatabase(Database):
     def __init__(self, database, _pragmas=None, *args, **kwargs):
+        self.init_file = None
+        self.upgrade_file = None
         self._pragmas = _pragmas or []
         journal_mode = kwargs.pop('journal_mode', None)
         if journal_mode:
@@ -135,6 +141,8 @@ class SQLiteDatabase(Database):
     
     def _add_conn_hooks(self, conn):
         self._set_pragmas(conn)
+        self._init_db(conn)
+        self._upgrade_db(conn)
     
     def _set_pragmas(self, conn):
         if self._pragmas:
@@ -142,6 +150,27 @@ class SQLiteDatabase(Database):
             for pragma, value in self._pragmas:
                 cursor.execute('PRAGMA %s=%s;' % (pragma, value))
             cursor.close()
+    def _init_db(self, conn):
+        if self.init_file and self.init_file:
+            cur = conn.cursor()
+            init_file = open(self.init_file)
+            try:
+                init_sql = " ".join(init_file.readlines())
+                cur.executescript(init_sql);
+            finally:
+                init_file.close()
+                cur.close()
+    
+    def _upgrade_db(self, conn):
+        if self.upgrade_file:
+            cur = conn.cursor()
+            upgrade_file = open(self.upgrade_file)
+            try:
+                upgrade_sql = " ".join(upgrade_file.readlines())
+                cur.executescript(upgrade_sql)
+            finally:
+                upgrade_file.close()
+                cur.close()
     
     def pragma(self, key, value=None):
         sql = 'PRAGMA $s' % key

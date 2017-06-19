@@ -17,8 +17,6 @@ logger = logging.getLogger('fair')
 logger.addHandler(NullHandler())
 
 
-
-
 def fairdb(func):
     def generator(*args, **kwargs):
         fargs, varargname, kwname = inspect.getargspec(func)[:3]
@@ -63,13 +61,3 @@ def _getcallargs(args, varargname, kwname, varargs, keywords):
      
     dctArgs.update(keywords)
     return dctArgs
-
-
-class Model(object):
-    def __init__():
-        pass
-
-
-class Database(object):
-    def __init__():
-        pass

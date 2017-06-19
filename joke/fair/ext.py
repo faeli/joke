@@ -36,7 +36,7 @@ class SanicDb(object):
         elif isinstance(config_value, dict):
             pass
         else:
-            database = db_url_connect(config_value)
+            database = db_url_connect(config_value,**app.config['DATABASE_SQL_FILE'])
         
         self.database = database
 

@@ -18,6 +18,12 @@ class Config(object):
     # DB file
     DB_FILE = 'joke-%s.db' % ENV
     
+    # DB sql file
+    DATABASE_SQL_FILE = {
+        'init_file': '%s/data/init-db.sql' % APP_DIR,
+        'upgrade_file': '%s/data/upgrade-db.sql' % APP_DIR
+    }
+    
     # SQLite file
     DATABASE = 'sqlite:///%s' % os.path.join(APP_DIR, DB_FILE)
     

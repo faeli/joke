@@ -9,7 +9,7 @@ asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 from sanic import Sanic
 from joke.config import load_config
-
+from joke.fair.ext import SanicDb
 # config
 CONFIG = load_config()
 
@@ -19,7 +19,7 @@ app.config.from_object(CONFIG)
 
 # Db
 #from joke.data import SQLiteData
-
+db = SanicDb(app)
 
 # io loop
 loop = asyncio.get_event_loop()

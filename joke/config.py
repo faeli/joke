@@ -2,17 +2,24 @@
 # -*- coding: utf-8 -*-
 
 
+import os
+
 RES_URI = 'res'
 STATIC_URI = 'res/static'
 IMAGES_URI = 'res/images'
 
 class Config(object):
     """"""
+    APP_DIR = os.path.dirname(os.path.realpath(__file__))
+    
     # env 
     ENV = "DEV"
     
+    # DB file
+    DB_FILE = 'joke-%s.db' % ENV
+    
     # SQLite file
-    DB_FILE = 'joke.db'
+    DATABASE = 'sqlite:///%s' % os.path.join(APP_DIR, DB_FILE)
     
     # CELERY config
     CELERY = {}

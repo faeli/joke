@@ -3,6 +3,7 @@
 from . import fairdb
 from .db_url import connect as db_url_connect
 from .model import Model
+from . import field
 from .database import Database
 
 class SanicDb(object):
@@ -13,6 +14,17 @@ class SanicDb(object):
         self._db = database
         if app is not None:
             self.init_app(app)
+    
+    def __getattr__(self, name):
+        cls = type(self)
+        # 获取可以使用的数据库类型 Field
+        if name.endswith('Field'):
+            field = self.database.get_field(name)
+            if not field:
+                msg = '{.__name__!r} object has no attribute {!r}'
+                raise AttributeError(msg.format(cls, name))
+            return field
+        return super().__getattr__(name)
     
     def init_app(self, app):
         self._app = app

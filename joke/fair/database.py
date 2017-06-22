@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import threading
 from . import logger
-
+from . import field
 
 class _BaseConnectionLocal(object):
     def __init__(self, **kwargs):
@@ -19,7 +19,7 @@ class _ConnectionLocal(_BaseConnectionLocal, threading.local):
 
 
 class Database(object):
-    def __init__(self, database,  threadlocals=True, autocommit=True, **connect_kwargs):
+    def __init__(self, database,  threadlocals=True, autocommit=True, autorollback=True, **connect_kwargs):
         self.connect_kwargs = {}
         if threadlocals:
             self._local = _ConnectionLocal()
@@ -29,7 +29,8 @@ class Database(object):
         
         self._conn_lock = threading.Lock()
         self.autocommit = autocommit
-        
+        self.autorollback = autorollback
+    
     def init(self, database, **connect_kwargs):
         self.deferred = database is None
         self.database = database
@@ -64,6 +65,9 @@ class Database(object):
     def get_cursor(self):
         return self.get_conn().cursor()
     
+    def get_field(self, field_name):
+        return self._get_field(field_name)
+    
     def commit(self):
         self.get_conn().commit()
     
@@ -72,6 +76,10 @@ class Database(object):
     
     def set_autocommit(self, autocommit):
         self._local.autocommit = autocommit
+    
+    def last_insert_id(self, cursor, model):
+        if model._meta.auto_increment:
+            return cursor.lastrowid
     
     def get_autocommit(self):
         if self._local.autocommit is None:
@@ -98,12 +106,14 @@ class Database(object):
     def _connect(self, database, **kwargs):
         raise NotImplementedError
     
+    def _get_field(self, name):
+        raise NotImplementedError
+    
     def _close(self, conn):
         conn.close()
 
 
 # SQLite3 database
-
 try:
     from pysqlite2 import dbapi2 as pysq3
 except ImportError:
@@ -117,6 +127,21 @@ else:
         sqlite3 = pysq3
 
 class SQLiteDatabase(Database):
+    _fields = {
+        'TextField': field.TextField, 
+        'IntegerField': field.IntegerField,
+        'RealField': field.RealField,
+        'DataTimeField': field.DateTimeField
+    }
+    
+    field_overrides = {
+        'bool': 'INTEGER',
+        'smallint': 'INTEGER',
+        'datatime': 'TEXT',
+        'uuid': 'TEXT'
+    }
+    foreign_keys = False
+    
     def __init__(self, database, _pragmas=None, *args, **kwargs):
         self.init_file = None
         self.upgrade_file = None
@@ -126,6 +151,9 @@ class SQLiteDatabase(Database):
             self._pragmas.append(('journal_mode', journal_mode))
         
         super(SQLiteDatabase, self).__init__(database,*args,**kwargs)
+    
+    def _get_field(self, name):
+        return SQLiteDatabase._fields.get(name, None)
     
     def _connect(self, database, **kwargs):
         if not sqlite3:

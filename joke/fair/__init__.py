@@ -17,16 +17,18 @@ logger = logging.getLogger('fair')
 logger.addHandler(NullHandler())
 
 
-def fairdb(func):
-    def generator(*args, **kwargs):
-        fargs, varargname, kwname = inspect.getargspec(func)[:3]
-        dictArgs = _getcallargs(fargs, varargname, kwname, args, kwargs)
-        self = dictArgs.pop('self')
-        sql_name = '_'.join([func.__name__,'sql']).upper()
-        sql = self.__class__.__dict__[sql_name]
-        return self.__class__.func_exec(self, sql, **dictArgs)
-    
-    return generator
+def fairdb(**options):
+    def wrapper(func):
+        def generator(*args, **kwargs):
+            fargs, varargname, kwname = inspect.getargspec(func)[:3]
+            dictArgs = _getcallargs(fargs, varargname, kwname, args, kwargs)
+            self = dictArgs.pop('self')
+            sql_name = '_'.join([func.__name__,'sql']).upper()
+            sql = self.__class__.__dict__[sql_name]
+            return self.__class__.func_exec(self, sql, options, **dictArgs)
+        
+        return generator
+    return wrapper
 
 def _getcallargs(args, varargname, kwname, varargs, keywords):
     dctArgs = {}

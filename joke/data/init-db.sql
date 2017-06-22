@@ -1,6 +1,6 @@
 CREATE TABLE
 IF NOT EXISTS joke (
-    id              real    PRIMARY KEY,
+    id              integer PRIMARY KEY AUTOINCREMENT,
     title           text    NOT NULL,
     content         text,
     jpg             text,
@@ -9,46 +9,46 @@ IF NOT EXISTS joke (
     origin          text,
     origin_name     text,
     origin_uri      text,
-    author_id       real,
+    author_id       integer    NOT NULL,
     joke_topic      text,
     comment_count   integer,
-    create_date     text,
+    create_date     text    NOT NULL,
     is_delete       integer
 );
 
 CREATE TABLE
 IF NOT EXISTS author (
-    id          real    PRIMARY KEY,
-    name        text    NOT NULL,
+    id          integer     PRIMARY KEY AUTOINCREMENT,
+    name        text        NOT NULL,
     avatar      text,
     origin_id   text,
     joke_count  integer,
-    user_id     real,
+    user_id     integer     NOT NULL,
     is_delete   integer
 );
 
 CREATE TABLE
 IF NOT EXISTS comment (
-    id          real    PRIMARY KEY,
-    content     text,
-    author_id   real,
-    create_date text,
+    id          integer     PRIMARY KEY AUTOINCREMENT,
+    content     text        NOT NULL,
+    author_id   integer     NOT NULL,
+    create_date text        NOT NULL,
     is_delete   integer
 );
 
 CREATE TABLE
 IF NOT EXISTS tag (
-    id          real    PRIMARY KEY,
-    name        text    NOT NULL,
-    create_date text,
+    id          integer     PRIMARY KEY AUTOINCREMENT,
+    name        text        NOT NULL,
+    create_date text        NOT NULL,
     is_delete   integer
 );
 
 CREATE TABLE
 IF NOT EXISTS joke_tag (
-    id          real    PRIMARY KEY,
-    joke_id     real    NOT NULL,
-    tag_id      real    NOT NULL,
-    create_date text,
+    id          integer     PRIMARY KEY AUTOINCREMENT,
+    joke_id     integer     NOT NULL,
+    tag_id      integer     NOT NULL,
+    create_date text        NOT NULL,
     is_delete   integer
 );

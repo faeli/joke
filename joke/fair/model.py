@@ -2,24 +2,16 @@
 # -*- coding: utf-8 -*-
 import re
 from copy import deepcopy
-
+from bisect import bisect_left
+from bisect import bisect_right
 from . import logger
-
+from .field import *
 
 # Python 2/3 compatibility helpers. These helpers are used internally and are
 # not exported.
 _METACLASS_ = '_metaclass_helper_'
 def with_metaclass(meta, base=object):
     return meta(_METACLASS_, (base,), {})
-
-
-class Field(object):
-    def __init__(self, *args, **kwargs):
-        pass
-
-
-class PrimaryKeyField(Field):
-    pass
 
 
 class CompositeKey(object):
@@ -58,22 +50,6 @@ class _SortedFieldList(object):
         idx = self.index(item)
         del self._items[idx]
         del self._keys[idx]
-
-class FieldDescriptor(object):
-    # Fields are exposed as descriptors in order to control access to the
-    # underlying "raw" data.
-    def __init__(self, field):
-        self.field = field
-        self.att_name = self.field.name
-
-    def __get__(self, instance, instance_type=None):
-        if instance is not None:
-            return instance._data.get(self.att_name)
-        return self.field
-
-    def __set__(self, instance, value):
-        instance._data[self.att_name] = value
-        instance._dirty.add(self.att_name)
 
 
 class ModelOptions(object):
@@ -295,36 +271,36 @@ class BaseModel(type):
             cls._meta.db_table = re.sub('[^\w]+', '_', cls.__name__.lower())
 
         # replace fields with field descriptors, calling the add_to_class hook
-        # fields = []
-        # for name, attr in cls.__dict__.items():
-        #     if isinstance(attr, Field):
-        #         if attr.primary_key and model_pk:
-        #             raise ValueError('primary key is overdetermined.')
-        #         elif attr.primary_key:
-        #             model_pk, pk_name = attr, name
-        #         else:
-        #             fields.append((attr, name))
-        #
-        # composite_key = False
-        # if model_pk is None:
-        #     if parent_pk:
-        #         model_pk, pk_name = parent_pk, parent_pk.name
-        #     else:
-        #         model_pk, pk_name = PrimaryKeyField(primary_key=True), 'id'
-        # if isinstance(model_pk, CompositeKey):
-        #     pk_name = '_composite_key'
-        #     composite_key = True
-        #
-        # if model_pk is not False:
-        #     model_pk.add_to_class(cls, pk_name)
-        #     cls._meta.primary_key = model_pk
-        #     cls._meta.auto_increment = (
-        #         isinstance(model_pk, PrimaryKeyField) or
-        #         bool(model_pk.sequence))
-        #     cls._meta.composite_key = composite_key
-        #
-        # for field, name in fields:
-        #     field.add_to_class(cls, name)
+        fields = []
+        for name, attr in cls.__dict__.items():
+            if isinstance(attr, Field):
+                if attr.primary_key and model_pk:
+                    raise ValueError('primary key is overdetermined.')
+                elif attr.primary_key:
+                    model_pk, pk_name = attr, name
+                else:
+                    fields.append((attr, name))
+
+        composite_key = False
+        if model_pk is None:
+            if parent_pk:
+                model_pk, pk_name = parent_pk, parent_pk.name
+            else:
+                model_pk, pk_name = PrimaryKeyField(primary_key=True), 'id'
+        if isinstance(model_pk, CompositeKey):
+            pk_name = '_composite_key'
+            composite_key = True
+
+        if model_pk is not False:
+            model_pk.add_to_class(cls, pk_name)
+            cls._meta.primary_key = model_pk
+            cls._meta.auto_increment = (
+                isinstance(model_pk, PrimaryKeyField) or
+                bool(model_pk.sequence))
+            cls._meta.composite_key = composite_key
+
+        for field, name in fields:
+            field.add_to_class(cls, name)
 
         # create a repr and error class before finalizing
         if hasattr(cls, '__unicode__'):
@@ -350,6 +326,9 @@ class BaseModel(type):
 
 
 class Model(with_metaclass(BaseModel)):
+    INSERT_SQL = '''INSERT INTO {db_table}({columns}) VALUES({values});'''
+    SELECT_SQL = '''SELECT {columns} FROM {db_table}'''
+    UPDATE_SQL = '''UPDATE {db_table} SET {sets} WHERE {wheres};'''
     def __init__(self, *args, **kwargs):
         self._data = self._meta.get_default_dict()
         self._dirty = set(self._data)
@@ -360,19 +339,117 @@ class Model(with_metaclass(BaseModel)):
         for k, v in kwargs.items():
             setattr(self, k, v)
     
+    @classmethod
+    def insert(cls, __data=None, **insert):
+        fdict = __data or {}
+        fdict.update([(cls._meta.fields[f], insert[f]) for f in insert])
+        columns = []
+        values = []
+        values_placeholder = []
+        for key, value in fdict.items():
+            if isinstance(key, Field):
+                print('%s = %s' %(key.name, value))
+                columns.append(key.name)
+                values.append(value)
+                values_placeholder.append('?')
+            elif isinstance(key, str):
+                print('%s = %s' %(key, value))
+        
+        sql = cls.INSERT_SQL.format(db_table=cls._meta.db_table, columns=",".join(columns), values=",".join(values_placeholder))
+        cursor = cls._meta.database.execute_sql(sql, values)
+        return cls._meta.database.last_insert_id(cursor, cls)
+    
+    @classmethod
+    def select(cls, where=None, limit=-1, skip=-1, columns=['*']):
+        sql = cls.SELECT_SQL
+        wheres = []
+        columns = columns
+        params =[]
+        formats = {
+            'db_table': cls._meta.db_table, 
+            'columns': ",".join(columns)
+        }
+        if where:
+            sql += ''' WHERE {wheres}'''
+            for key, value in where.items():
+                wheres.append('%s=?' %(key))
+                params.append(value)
+            formats['wheres'] = " AND ".join(wheres)
+        sql = sql.format(**formats)
+        
+        limit_str = ''' LIMIT {skip},{limit}'''
+        if skip > 0:
+            limit_str = limit_str.format(skip=skip, limit=limit or 1)
+        elif limit > 0:
+            limit_str = limit_str.format(skip=skip or 0, limit=limit)
+        
+        if skip > 0 or limit > 0:
+            sql += limit_str
+        cursor = cls._meta.database.execute_sql(sql, params)
+        # TODO Objeck
+        return cursor.fetchall()
+    
+    @classmethod
+    def update(cls, update=None, where=None):
+        if not where:
+            raise RuntimeError("must where")
+        if not update:
+            raise RunttimeError("must update")
+        formats = {
+            'db_table': cls._meta.db_table
+        }
+        sets = []
+        params = []
+        for key, value in update.items():
+            sets.append('%s=?' % key)
+            params.append(value)
+        wheres = []
+        for key, value in where.items():
+            wheres.append('%s=?' % key)
+            params.append(value)
+        formats['sets'] = ",".join(sets)
+        formats['wheres'] = " AND ".join(wheres)
+        sql = cls.UPDATE_SQL.format(**formats)
+        cursor = cls._meta.database.execute_sql(sql, params)
+        return cursor.rowcount
+    
+    def save(self):
+        pass
+    
     def exec_sql(self, sql, params):
-        sql = sql.format(**params)
+        # sql = sql.format(**params)
         cursor = self._meta.database.execute_sql(sql,params)
         return cursor
     
-    def compile_sql(self, sql, params):
+    def compile_sql(self, sql, kwargs):
+        # 根据 sql 分析出查询出的字段，并取出需要的参数
+        sql = sql.format(**kwargs)
         return sql
     
-    def func_exec(self, sql, **kwargs):
+    def func_exec(self, sql, options, **kwargs):
         logger.info(sql)
+        ret = None
+        if 'ret' in options:
+            ret = options['ret']
         # sql = sql.format(**kwargs)
+        if options:
+            for key, value in options.items():
+                print('%s = %s' % (key, value))
+        
         for k, v in kwargs.items():
             print('%s = %s' % (k, v))
         sql = self.compile_sql(sql, kwargs)
-        return self.exec_sql(sql, kwargs)
+        cursor = self.exec_sql(sql, kwargs)
+        data = None
+        # TODO 数据转换
+        if ret is None:
+            data = cursor
+        elif ret is list or isinstance(ret, list):
+            data = cursor.fetchall()
+        elif ret is dict or isinstance(ret, dict):
+            data = cursor.fetchone()
+        else:
+            data = cursor
+        
+        return data
     

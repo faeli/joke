@@ -23,6 +23,6 @@ class Joke(db.Model):
     
     GET_SQL = ''' SELECT j.*,a.name AS author_name,a.avatar AS author_avatar FROM joke AS j
                   LEFT JOIN author AS a ON j.author_id=a.id;'''
-    @db.fair(ret=list)
+    @db.select(ret=list)
     def get(self, where=None):
         pass

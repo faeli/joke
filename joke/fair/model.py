@@ -6,7 +6,7 @@ from bisect import bisect_left
 from bisect import bisect_right
 from . import logger
 from .field import *
-
+from .result import DictQueryResultWrapper
 # Python 2/3 compatibility helpers. These helpers are used internally and are
 # not exported.
 _METACLASS_ = '_metaclass_helper_'
@@ -360,10 +360,11 @@ class Model(with_metaclass(BaseModel)):
         return cls._meta.database.last_insert_id(cursor, cls)
     
     @classmethod
-    def select(cls, where=None, limit=-1, skip=-1, columns=['*']):
+    def select(cls, where=None, limit=-1, skip=-1, columns=None):
         sql = cls.SELECT_SQL
         wheres = []
-        columns = columns
+        if columns is None:
+            columns = list(cls._meta.columns.keys())
         params =[]
         formats = {
             'db_table': cls._meta.db_table, 
@@ -387,7 +388,8 @@ class Model(with_metaclass(BaseModel)):
             sql += limit_str
         cursor = cls._meta.database.execute_sql(sql, params)
         # TODO Objeck
-        return cursor.fetchall()
+        result = cls._query_result_wrapper(cursor)
+        return result
     
     @classmethod
     def update(cls, update=None, where=None):
@@ -413,43 +415,59 @@ class Model(with_metaclass(BaseModel)):
         cursor = cls._meta.database.execute_sql(sql, params)
         return cursor.rowcount
     
+    @classmethod
+    def _query_result_wrapper(cls, cursor):
+        # TODO 处理查询返回数据
+        return DictQueryResultWrapper(cls, cursor)
+    
     def save(self):
+        # 先按主键值查询，查询不到=新增，查询到=修改
         pass
     
     def exec_sql(self, sql, params):
         # sql = sql.format(**params)
         cursor = self._meta.database.execute_sql(sql,params)
+        # TODO test
+        # for i in dir(cursor):
+        #     if not i.startswith('__'):
+        #         print(i)
+        #         # print(cursor[i])
+        # for i in cursor.description:
+        #     print(i)
         return cursor
     
     def compile_sql(self, sql, kwargs):
-        # 根据 sql 分析出查询出的字段，并取出需要的参数
+        # TODO 根据 sql 分析出查询出的字段，并取出需要的参数
         sql = sql.format(**kwargs)
         return sql
     
     def func_exec(self, sql, options, **kwargs):
         logger.info(sql)
         ret = None
+        sql_type = 'SELECT'
         if 'ret' in options:
             ret = options['ret']
-        # sql = sql.format(**kwargs)
-        if options:
-            for key, value in options.items():
-                print('%s = %s' % (key, value))
         
+        if 'sql_type' in options:
+            sql_type = options['sql_type']
+        
+        # sql = sql.format(**kwargs)
         for k, v in kwargs.items():
             print('%s = %s' % (k, v))
         sql = self.compile_sql(sql, kwargs)
         cursor = self.exec_sql(sql, kwargs)
         data = None
-        # TODO 数据转换
-        if ret is None:
-            data = cursor
-        elif ret is list or isinstance(ret, list):
-            data = cursor.fetchall()
-        elif ret is dict or isinstance(ret, dict):
-            data = cursor.fetchone()
-        else:
-            data = cursor
         
+        if sql_type =='SELECT':
+            result = self._query_result_wrapper(cursor)
+            data = []
+            for item in result:
+                data.append(item)
+        elif sql_type == 'UPDATE':
+            data = cursor.rowcount
+        elif sql_type == 'DELETE':
+            data = cursor.rowcount
+        elif sql_type == 'INSERT':
+            data = self._meta.database.last_insert_id(cursor, self) or cursor.rowcount
         return data
     

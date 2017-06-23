@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from . import fairdb
+from .db_wrapper import select, insert, update, delete
 from .db_url import connect as db_url_connect
 from .model import Model
 from . import field
 from .database import Database
 
-class SanicDb(object):
+
+class BaseDb(object):
     def __init__(self, app=None, database=None):
-        super(SanicDb, self).__init__()
         self.database = None
         self._app = app
         self._db = database
         if app is not None:
             self.init_app(app)
-    
     def __getattr__(self, name):
         cls = type(self)
         # 获取可以使用的数据库类型 Field
@@ -25,6 +24,16 @@ class SanicDb(object):
                 raise AttributeError(msg.format(cls, name))
             return field
         return super().__getattr__(name)
+    
+    def _load_database(self, app, config_value):
+        if isinstance(config_value, Database):
+            database = config_value
+        elif isinstance(config_value, dict):
+            pass
+        else:
+            database = db_url_connect(config_value,**app.config['DATABASE_SQL_FILE'])
+        
+        self.database = database
     
     def init_app(self, app):
         self._app = app
@@ -39,21 +48,9 @@ class SanicDb(object):
         else:
             initial_db = self.db
         
+        self.initial_db = initial_db
         self._load_database(app, initial_db)
-        self._register_handlers(app)
-    
-    def _load_database(self, app, config_value):
-        if isinstance(config_value, Database):
-            database = config_value
-        elif isinstance(config_value, dict):
-            pass
-        else:
-            database = db_url_connect(config_value,**app.config['DATABASE_SQL_FILE'])
-        
-        self.database = database
-
-    def _register_handlers(self, app):
-        pass
+        return self.initial_db
     
     def get_model_class(self):
         if self.database is None:
@@ -63,7 +60,7 @@ class SanicDb(object):
             class Meta:
                 database = self.database
         
-        return BaseModel
+        return BaseModel    
     
     @property    
     def Model(self):
@@ -77,5 +74,35 @@ class SanicDb(object):
         return self._model_class
     
     @property
-    def fair(self):
-        return fairdb
+    def select(self):
+        return select
+    
+    @property
+    def insert(self):
+        return insert
+    
+    @property
+    def update(self):
+        return update
+    
+    @property
+    def delete(self):
+        return delete
+
+
+class SanicDb(BaseDb):
+    def __init__(self, app=None, database=None):
+        super(SanicDb, self).__init__(app, database)
+    
+    def init_app(self, app):
+        super(SanicDb, self).init_app(app)
+        self._register_handlers(app)
+    
+    def _register_handlers(self, app):
+        pass
+    
+
+    
+
+        
+        

@@ -11,17 +11,23 @@ def test_select():
     assert len(ret) > 1
     ret = Joke.select(limit=1)
     assert len(ret) == 1
-    ret = Joke.select(skip=1,limit=1)
-    # print(ret)
-    assert ret[0][0] == 2
+    ret = Joke.select(skip=1, limit=1)
+    assert len(ret) == 1
+    for i in ret:
+        print(i)
+    ret = Joke.select()
+    assert len(ret) > 0
 
 def test_update():
     ret = Joke.update({'origin':'pengfu'},{'id':1})
     assert ret == 1
 
-# def test_get():
-#     model = Joke()
-#     assert len(model.get()) == 5
+def test_get():
+    model = Joke()
+    ret = model.get()
+    print(ret)
+    assert False
+    assert len(model.get()) == 5
 
 #def test_save():
 #    data = {

@@ -6,11 +6,13 @@ from .pengfu import Pengfu
 from .file import DownloadImage
 from progress.counter import Counter
 
-from joke import celery
+from joke import celery, app
+
+APP_DIR = app.config['APP_DIR']
 
 pengfu = Pengfu()
-jokeImg = DownloadImage({'res':'joke/res/images/joke'})
-avatarImg = DownloadImage({'res':'joke/res/images/avatar'})
+jokeImg = DownloadImage({'res':'res/images/joke'})
+avatarImg = DownloadImage({'res':'res/images/avatar'})
 def saveJoke(joke):
     print(joke)
     if 'jpg' in joke and joke['jpg']:

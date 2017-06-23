@@ -131,7 +131,7 @@ class SQLiteDatabase(Database):
         'TextField': field.TextField, 
         'IntegerField': field.IntegerField,
         'RealField': field.RealField,
-        'DataTimeField': field.DateTimeField
+        'DateTimeField': field.DateTimeField
     }
     
     field_overrides = {

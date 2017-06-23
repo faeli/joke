@@ -19,7 +19,7 @@ def test_select():
     assert len(ret) > 0
 
 def test_update():
-    ret = Joke.update({'origin':'pengfu'},{'id':1})
+    ret = Joke.update({'origin':'pengfu'},{'id':4})
     assert ret == 1
 
 def test_get():
@@ -28,20 +28,19 @@ def test_get():
     print(ret)
     assert len(model.get()) > 1
 
-#def test_save():
-#    data = {
-#        'title': '心有多大，舞台就有多大', 
-#        'content': '心有多大',
-#        'author_id': 1,
-#        'create_date': datetime.datetime.now()
-#    }
-#    model = Joke(**data)
-#    ret = model.get()
-#    # print(ret)
-#    ret = Joke.insert(**data)
-#    print('ret')
-#    print(ret)
-#    # print(model._meta.fields)
-#    # print(model._meta.db_table)
-#    assert False
-    
+def test_save():
+   data = {
+       'title': '心有多大，舞台就有多大',
+       'content': '心有多大',
+       'author_id': 1,
+       'origin_id': 'test_1',
+       'create_date': datetime.datetime.now()
+   }
+   model = Joke(**data)
+   ret = model.save(where={'origin_id':'test_1'})
+   assert model.id > 0
+   
+   model2 = Joke(**data)
+   model2.content = '心有多大，舞台就有多大'
+   ret = model2.save(where={'id': model.id})
+   assert model.id == model2.id

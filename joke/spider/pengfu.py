@@ -63,13 +63,13 @@ class Pengfu(object):
             joke = {}
             
             # //*[@id="1698759"]
-            joke['origin_id'] = item.get('id')
+            joke['origin_id'] = 'PF_' + item.get('id')
             joke['origin'] = 'https://www.pengfu.com'
             joke['origin_name'] = "捧腹网"
             joke['joke_topic'] = topic
             author = item.xpath('dl/dt')[0]
             
-            joke['author_id'] = author.get('id')
+            joke['author_id'] = 'PF_' + author.get('id')
             author_img = author.xpath('a/img')[0]
             joke['author_avatar'] = author_img.get('src')
             joke['author_name'] = author_img.get('alt')
@@ -93,6 +93,7 @@ class Pengfu(object):
                 comment['author_name'] = author.get('alt')
                 comment['author_avatar'] = author.get('src')
                 comment['author_id'] , _ = os.path.splitext(os.path.basename(comment['author_avatar']))
+                comment['author_id'] = 'PF_' + comment['author_id']
                 joke['comments'] = [comment]
             
             # tags

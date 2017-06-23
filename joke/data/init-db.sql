@@ -5,7 +5,7 @@ IF NOT EXISTS joke (
     content         text,
     jpg             text,
     gif             text,
-    origin_id       text,
+    origin_id       text    NOT NULL UNIQUE,
     origin          text,
     origin_name     text,
     origin_uri      text,
@@ -21,7 +21,7 @@ IF NOT EXISTS author (
     id          integer     PRIMARY KEY AUTOINCREMENT,
     name        text        NOT NULL,
     avatar      text,
-    origin_id   text,
+    origin_id   text        NOT NULL UNIQUE,
     joke_count  integer,
     user_id     integer     NOT NULL,
     is_delete   integer

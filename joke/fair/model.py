@@ -299,6 +299,7 @@ class BaseModel(type):
                 bool(model_pk.sequence))
             cls._meta.composite_key = composite_key
 
+        # 添加 filed 到 cls 上，并调用 ModelOptions.add_field
         for field, name in fields:
             field.add_to_class(cls, name)
 
@@ -420,9 +421,22 @@ class Model(with_metaclass(BaseModel)):
         # TODO 处理查询返回数据
         return DictQueryResultWrapper(cls, cursor)
     
-    def save(self):
-        # 先按主键值查询，查询不到=新增，查询到=修改
-        pass
+    def save(self, where=None):
+        field_dict = dict(self._data)
+        # 先按主键/unique键值查询，查询不到=新增，查询到=修改
+        old_doc = None
+        if where is not None:
+            rets = [i for i in self.select(where,1)]
+            if len(rets) == 1:
+                old_doc = rets[0]
+            print(old_doc)
+        if old_doc is not None:
+            self.id = old_doc['id']
+            return self.update(field_dict, where)
+        else:
+            last_insert_id = self.insert(**field_dict)
+            self.id = last_insert_id
+            return last_insert_id
     
     def exec_sql(self, sql, params):
         # sql = sql.format(**params)

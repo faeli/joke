@@ -5,3 +5,7 @@ init:
 	
 test:
 	${PY_HOME}/py.test
+	
+run:
+	${PY_HOME}/python run.py
+	

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> {% block head %}
+    <title>{% block title %}{% endblock %}</title>
+    <link href="/res/css/normalize.css" rel="stylesheet" type="text/css" />
+    <link href="/res/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <link href="/res/css/print.css" media="print" rel="stylesheet" type="text/css" />
+    <link href="/res/css/main.css" rel="stylesheet" type="text/css" />
+    <!--[if IE]>
+      <link href="/res/css/ie.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <![endif]-->
+    {% endblock %}
+</head>
+
+<body>
+    <div class="wrap-content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+
+</html>

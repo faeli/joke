@@ -4,7 +4,7 @@
 import sys
 import math
 
-from joke import db
+from joke.server import db
 
 
 class Joke(db.Model):

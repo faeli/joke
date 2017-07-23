@@ -5,4 +5,4 @@
 from joke import app, loop
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=70315, loop=loop)
+    app.run(host="0.0.0.0", port=7315, debug=True)

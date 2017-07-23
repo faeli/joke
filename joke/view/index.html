@@ -1,0 +1,18 @@
+{% extends "_layout.html" %}
+{% block title %} Home - Joke {% endblock %}
+{% block content %}
+    {% for joke in jokes%}
+    <div>
+        <h5>{{joke.title}}</h5>
+        {%  if joke.content %}
+        <div class="content">{{joke.content}}</div>
+        {% endif %}
+        {%  if joke.jpg %}
+        <div class="img"><img src="{{joke.jpg}}"></div>
+        {% endif %}
+        {%  if joke.gif %}
+        <div class="img"><img src="{{joke.jpg}}"></div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% endblock %}

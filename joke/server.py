@@ -38,8 +38,8 @@ celery = make_celery(app)
 
 # Static File
 
-app.static('/favicon.ico','./res/favicon.png')
-app.static('/res','./res')
+app.static('/favicon.ico','%s/res/favicon.png' % app.config['APP_DIR'] )
+app.static('/res', ('%s/res' % app.config['APP_DIR']))
 
 # blueprint api v1
 from joke.api import v1
